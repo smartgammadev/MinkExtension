@@ -68,7 +68,14 @@ class GoutteFactory implements DriverFactory
             );
         }
 
-        if ($this->isGoutte1()) {
+        if ($this->isGoutte4()) {
+            $guzzleClient       = $this->buildGuzzle3Client($config['guzzle_parameters']);
+            $clientDefinition   = new Definition('Behat\Mink\Driver\Goutte\Client', []);
+
+            return new Definition('Behat\Mink\Driver\GoutteDriver', array(
+                $clientDefinition,
+            ));
+        } elseif ($this->isGoutte1()) {
             $guzzleClient = $this->buildGuzzle3Client($config['guzzle_parameters']);
         } elseif ($this->isGuzzle6()) {
             $guzzleClient = $this->buildGuzzle6Client($config['guzzle_parameters']);
@@ -114,13 +121,28 @@ class GoutteFactory implements DriverFactory
 
     private function isGoutte1()
     {
-        $refl = new \ReflectionParameter(array('Goutte\Client', 'setClient'), 0);
+        try {
+            $refl = new \ReflectionParameter(array('Goutte\Client', 'setClient'), 0);
 
-        if ($refl->getClass() && 'Guzzle\Http\ClientInterface' === $refl->getClass()->getName()) {
-            return true;
+            if ($refl->getClass() && 'Guzzle\Http\ClientInterface' === $refl->getClass()->getName()) {
+                return true;
+            }
+        } catch (\Exception $exception) {
+            return false;
         }
 
         return false;
+    }
+
+    private function isGoutte4()
+    {
+        if (!class_exists('Goutte\Client')) {
+            return false;
+        }
+
+        $refl = new \ReflectionClass('Goutte\Client');
+
+        return $refl->isSubclassOf('Symfony\Component\BrowserKit\HttpBrowser');
     }
 
     private function isGuzzle6()
